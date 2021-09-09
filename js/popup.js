@@ -36,23 +36,44 @@ $(document).ready(function () {
 
     });
   });
-
+  function getAlbumTracks(albumId, total, done){
+    var pageSize = 100
+    var pageNum = 1
+    var tracks = []
+    var fetchNext = function(){
+      $.get(`https://www.ximalaya.com/revision/album/v1/getTracksList?albumId=${albumId}&pageNum=${pageNum}&sort=0&pageSize=${pageSize}`, function (result) {
+        var newTracks = result.data.tracks || [];
+        if (newTracks.length>0){
+          pageNum += 1
+          tracks = tracks.concat(newTracks)
+          fetchNext()
+        } else {
+          console.log(`total: ${total} got: ${tracks.length}`)
+          done(tracks)
+        }
+      })
+    }
+    fetchNext()
+  }
   // 点击获取专辑
   // https://www.ximalaya.com/gerenchengzhang/19790718/
   $("#getAlbumAudioBtn").click(function () {
     chrome.tabs.getSelected(null, function (tab) {
       const url = tab.url;
-
+      var page = 1
+      var albumId = ''
       const params = url.split("/");
-      const albumId = params[params.length - 2];
-      console.log(`albumId=${albumId}`);
+      albumId = params[params.length - 2];
+      if(albumId.indexOf('p')==0){
+        page = parseInt(albumId.substr(1))
+        albumId = params[params.length - 3];
+      }
+      console.log(`albumId=${albumId} page=${page}`);
       let albumUrl = `https://www.ximalaya.com/revision/album/v1/getTracksList?albumId=${albumId}&pageNum=1&pageSize=1`
+      console.log(albumUrl)
       $.get(albumUrl, function (tempRes) {
         const count = tempRes.data.trackTotalCount;
-        albumUrl = `https://www.ximalaya.com/revision/album/v1/getTracksList?albumId=${albumId}&pageNum=1&sort=0&pageSize=${count}`
-        $.get(albumUrl, function (result) {
-          console.log(result)
-          const tracks = result.data.tracks || [];
+        getAlbumTracks(albumId, count, function(tracks){
           const tbody = tracks.map((t, index) => {
             return `
             <tr class="table-download-row">
@@ -100,7 +121,6 @@ $(document).ready(function () {
           })
         })
       })
-      //
     });
   });
 
