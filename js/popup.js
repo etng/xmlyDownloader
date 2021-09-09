@@ -10,25 +10,30 @@ $(document).ready(function () {
       const trackId = params[params.length - 1];
       console.log(`trackId=${trackId}`);
 
-      const dataUrl = `http://www.ximalaya.com/tracks/${trackId}.json`;
+      const dataUrl = `https://www.ximalaya.com/revision/play/v1/audio?id=${trackId}&ptype=1`;
+      $.get(`https://www.ximalaya.com/revision/play/v1/show?id=${trackId}&sort=1&size=30&ptype=1`, function(result){
+        var currentTrack = null
+        result.data.tracksAudioPlay.forEach(track => {
+          if(track.trackId==trackId){
+            currentTrack = track
+          }
+        });
+        if(currentTrack){
+          $.get(dataUrl, function (result) {
+            const title = currentTrack.trackName;
+            const audioSrc = result.data.src;
+            console.log(`audioSrc:${audioSrc}`);
+            $("#sigleAudioRecognizeResult").html(
+              `<div><h6>${title}</h6></div>
+              <div><button id="downloadAudioBtn" type="button" class="btn btn-link" >下载音频</button></div>`
+            );
+            $('#downloadAudioBtn').click(function(e) {
+              downloadFile(audioSrc, `${title}`);
+            })
+          });
+        }
+      })
 
-      $.get(dataUrl, function (result) {
-        const title = result.title;
-        const href32 = result.play_path_32;
-        const href64 = result.play_path_64;
-        console.log(`href32:${href32}, href64:${href64}`);
-        $("#sigleAudioRecognizeResult").html(
-          `<div><h6>${title}</h6></div>
-          <div><button id="download32kBtn" type="button" class="btn btn-link" >下载32kps音频</button></div>
-          <div><button id="download64kBtn" type="button" class="btn btn-link" >下载64kps音频</button></div>`
-        );
-        $('#download32kBtn').click(function(e) {
-          downloadFile(href32, `${title}-32kps`);
-        })
-        $('#download64kBtn').click(function(e) {
-          downloadFile(href64, `${title}-64kps`);
-        })
-      });
     });
   });
 
@@ -74,16 +79,6 @@ $(document).ready(function () {
            </table>
             `
           );
-          tracks.forEach((t, index) => {
-            $(`#${t.trackId}`).click(function() {
-              const dataUrl = `http://www.ximalaya.com/tracks/${t.trackId}.json`;
-              $.get(dataUrl, function (result) {
-                const title = result.title;
-                const href64 = result.play_path_64;
-                downloadFile(href64, `${index + 1}-${title}`);
-              });
-            })
-          })
           $('#albumAudioRecognizeAlerts').click(function() {
             $('#albumAudioRecognizeAlerts').html('');
           })
@@ -91,11 +86,11 @@ $(document).ready(function () {
             for (let index = 0; index < tracks.length; index++) {
               const track = tracks[index];
               const trackId = track.trackId;
-              const dataUrl = `http://www.ximalaya.com/tracks/${trackId}.json`;
+              const dataUrl = `https://www.ximalaya.com/revision/play/v1/audio?id=${trackId}&ptype=1`;
               $.get(dataUrl, function (result) {
-                const title = result.title;
-                const href64 = result.play_path_64;
-                downloadFile(href64, `${index + 1}-${title}`);
+                const title = track.title;
+                const audioSrc = result.data.src;
+                downloadFile(audioSrc, `${index + 1}-${title}`);
                 $('#albumAudioRecognizeAlerts').html(`<div class="alerts">开始下载-${index + 1}-${title}</div>`)
               });
               await sleep(1000);
@@ -105,10 +100,10 @@ $(document).ready(function () {
           })
         })
       })
-      // 
+      //
     });
   });
-  
+
 });
 
 
